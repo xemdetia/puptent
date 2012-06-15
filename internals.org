@@ -56,5 +56,185 @@
 
     Form: build [target]
 
-    If target is omitted, build everything. 
+    If target is omitted, build everything. How builds work is that
+    you have the target file of the target name and in the .build file
+    in the .config directory you specify how things are made. This is
+    the only manual piece at the moment I think that needs to be done.
 
+    I think one way we could do this is by using a very simple
+    templating system. I'm going to consider the simple case in a
+    normal makefile:
+
+    #+begin_src makefile
+      OUTPUT=-o main
+      CC=gcc
+      
+      all: main.o
+              $(CC) main.o $(OUTPUT) $(LIBS)
+      
+      main.o: main.c
+              $(CC) -c main.c $(CFLAGS)
+    #+end_src
+
+    I think the first step is to find a way to template the main.o
+    line so we can map it to a bunch of multiple processes. Sort of
+    like distcc but not really. Additionally I want to try and make
+    sure it tries to build all files because the worst thing is when
+    you write a lot of working code but the compiler never touches it
+    while you handle some other bug. This is especially true for me at
+    least when you are trying to figure out a new API.
+
+    So let's analyze the main.o line a little more. We have two
+    variables: one for the compiler we are using and one for the
+    cflags. These can easily be .cache variables, and now they are!
+
+    So really I want to write the same makefile-esque line that I've
+    always written which is that:
+
+    $(CC) [file] $(OUTOPT) [file].o $(CFLAGS)
+
+    The variable substitutions should be easy enough. Find a $,
+    replace what's in the parens with something out of the .cache and
+    then continue on. The next two are trickier: making sure the
+    output option is set or not set but still detectable by the
+    compiler. I mean I *have* to specify the file name when doing the
+    next step and using =cl= I get .obj files and with =gcc= I get .o
+    files. Another thing is it would be great to prefix this build
+    command with some sort of setenv hook so we could run a local
+    script to set some of these options for us. In fact using getenv
+    is probably just as important as anything else because if they
+    don't want to use puptent they would more naturally export
+    variables. Any .cache variables should and will supercede exported
+    variables though for sanity.
+
+    I'm going to test if both cl and gcc can compile and link without
+    an extension. =gcc= definitely can't and =cl= oddly enough can as
+    it just assumes you are talking about an object file. In either
+    case you *do* get a warning. But the problem with =cl= remains
+    that it seems to force the .obj extension on you whether you want
+    it or not. Maybe the thing to do is is just be literal and specify
+    the extension.
+
+    In thinking about this more some variables should be easily set in
+    .build as well, which should be the 'assumed' blessed versions. If
+    they need to be changed they should be overriden by cache. I
+    really want to avoid doing objects or other wacky things, I want
+    files people can edit easily.
+
+    Maybe a good example file where the target is "jack" could be:
+    
+    #+begin_src python
+      __startup__ = [ "C:/Program Files/Microsoft SDKs/Windows/v7.0/Bin/setenv.cmd /Vista /x86" ]
+      CC="cl"
+      INCDIR="/I ..\\glfw-2.7.5\\include\\"
+      CFLAGS="/MDd"
+      GLFW_LIB_DIR="..\\glfw-2.7.5\\support\\msvc90\\Debug"
+      LINKFLAGS="/link user32.lib opengl32.lib $(GLFW_LIB_DIR)/GLFW.lib"
+      COMPILE_OPT="/c"
+      OBJEXT=".obj"
+      OUTPUT="/Fedraw.exe"
+      
+      jack = [ "$(CC) $(COMPILE_OPT) [file:each] $(INCDIR) $(CFLAGS)",
+               "$(CC) [file:all:replace-extension($(OBJEXT))] $(OUTPUT) $(CFLAGS) $(LINKFLAGS)" ]
+    #+end_src
+
+    This is a straight translation of a simple GLFW project's
+    makefile. We have a pretty straightforward set of variables, and
+    then =__startup__= which is a special variable that is run before
+    any other build commands are run. In our case this sets it sets up
+    the terminal environment to actually be feasible.
+
+    Next, we have the new bracket syntax. The syntax has the 'what' in
+    'file' and then how to apply it based on the operators that follow
+    with a ':'. I guess the best thing to do is if no modifier is
+    explicit to expect ':all' but I will see how that goes later.
+
+    So going back to the operators, :each signifies that this command
+    should be run separately based on EACH file in the build target. I
+    plan on trying to make this a multi-process feeder but I am not
+    sure still. The :all operator means take each file in the build
+    and cat it together on the line with spaces between them. This
+    means if you had something like main.c and jump.c in your build
+    target it would replace that with 'main.c jump.c' I feel this is
+    very straightforward and reasonable. The :replace-extension means
+    that I want to strip the extension from the file and tack a new
+    one on specified by the value inside. In this case I wanted to
+    switch the '.c' with the '.obj'.
+
+    This configuration though honestly isn't really the goal I had in
+    mind. Using what puptent provides through configuration and other
+    stuff I feel the file should be closer to:
+
+    #+begin_src python
+      jack = [ "$(CC) $(COMPILE_OPT) [file:each] $(INCDIR) $(CFLAGS)",
+               "$(CC) [file:all:replace-extension($(OBJEXT))] $(OUT)bin/draw.exe $(CFLAGS) $(LINKFLAGS)" ]
+    #+end_src
+
+    This is because the variables CC, COMPILE_OPT and OUT are all
+    things that could easily be in a var (or imported from another
+    project, it might be good to do a utility like that like
+    puptent-config c or something which imports from some master
+    .cache file somewhere). $(CFLAGS) could easily be appended to and
+    that sort of thing in the vars, or new things could be introduced.
+
+    The next thing that I feel is very important is that since this
+    `jack' variable is a list, there is an implicit order of
+    operations. You do the first step and then the second step. Even
+    if there is an :each operator and the jobs are spread around it is
+    still okay.
+*** set
+
+    Form: puptent set key value
+    
+    In .cache under the 'vars' subheading the variable key is assigned
+    value, and then written back into the file.
+   
+*** check
+
+    Form: puptent check [targets|build]
+    
+    This checks the files in all targets to make sure they. If build
+    is chosen it checks to see if there are any variables required,
+    but undefined somewhere as part of the .build file.
+
+*** import
+    Form: puptent import foreigndir [type]
+
+    Where [type] can be all or just [vars]
+
+*** list
+
+    Form: puptent list
+
+    List all the 'vars'
+*** package
+
+    Form: puptent package
+
+    Based on the specifications within .package build a package based
+    on the files built.
+
+** puptent-config
+
+   Form: puptent-config label
+
+   This is a script that takes a single argument and then immediately
+   checks the ~/.puptent directory for another directory called
+   ~/.puptent/label. In this directory should be an already
+   established .config directory with all the variables you want
+   setup. What this does is imports all the variables from that
+   skeleton config and dump them into the .config at the current
+   directory. This way it's easy to set a configuration up for
+   multiple versions of gcc or whatever else just by setting those
+   values like gcc-4.4 to CC and other common, expected
+   variables. This allows you to easily keep track of multiple
+   configs, and since the import process is not destructive you keep
+   your already setup configurations and import the new variables you
+   need based on your setup.
+
+* todo items
+
+  - [ ] Check that a file exists when you try and add it instead of
+    assuming it exists.
+  - [ ] Make some sort of before/after syntax for .build to make
+    things build in the right orders.
