@@ -16,6 +16,24 @@ cwd = os.getcwd() # We are using this a lot, it seems more sensible to
 def get_config():
     return os.path.join( cwd, '.config' )
 
+def get_cache_file():
+    return os.path.join( cwd, '.config/.cache' )
+
+def get_current_target():
+    if ( exist_cache() ): # Do we have a .cache with default config
+
+        cache = ConfigParser.RawConfigParser()
+        cache.read( get_cache_file() )
+        return cache.get( 'current', 'target' )
+    else:
+
+        # This case implies there might be no .config directory, but
+        # puptent target makes one so it shouldn't be an issue if the
+        # suggestion is followed.
+        print "Error: No current target selected in cache.\n" + \
+            "Did you use `puptent target name' to pick a target?"
+        return False
+
 def exist_config():
     return os.path.exists( get_config() )
 
@@ -24,6 +42,15 @@ def exist_target( target ):
 
 def exist_cache():
     return os.path.exists( os.path.join ( get_config(), '.cache'))
+
+def exist_file_current_target( filename ):
+    
+    # This function is designed for testing one and only one file just
+    # as forewarning later.
+    for line in open( os.path.join( get_config(), get_current_target())):
+        if line.strip() == filename:
+            return True
+    return False
 
 #
 # Tasks
@@ -69,3 +96,22 @@ def op_target(name=""):
         make_target( name )
         load_and_set_cache( 'current', 'target', name )
 
+def op_add(filename=""):
+
+    if ( filename == "" ):
+        print "Error: No files specified to add. Use `puptent add file1` to add files."
+        return
+    
+    target = get_current_target()
+    if ( not target ):
+        
+        print "You can't add files until you've selected a target"
+        return
+
+    fp = open( os.path.join( get_config(), target ), "a" )
+    
+    # TODO: Allow for variable length arguments
+    if ( not exist_file_current_target( filename )):        
+        fp.write(filename + "\n")
+
+    
