@@ -31,12 +31,21 @@
     directory. If name is included and doesn't exist create a new
     build target. If the name matches an existing build target, switch
     to that target.
+
+    At this time we've completed this. There is a .cache configuration
+    file that stores the current one. The plan for puptent in general
+    is to be a short-running process even at the worst of times. The
+    idea of targets in general is that it will just be a file with a
+    list of other files, one a line.
 *** add
     
     Form: puptent add [file] [file..]
 
     The add command does what you expect it to, it adds a file to the
-    current project. If there is no current project return an error.
+    current target. If there is no current project return an error.
+
+    We would like to make variable argument lists for this later on.
+    
 *** remove
 
     Form: puptent remove [file] [file..]
