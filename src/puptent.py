@@ -7,6 +7,7 @@
 import os
 import ConfigParser
 import tempfile
+import re
 
 cwd = os.getcwd() # We are using this a lot, it seems more sensible to
                   # cache it.
@@ -35,6 +36,11 @@ def get_current_target():
             "Did you use `puptent target name' to pick a target?"
         return False
 
+def get_variables_build_string( build ):
+
+    var_pat = re.compile('\$\([A-Za-z_]*\)')
+    return re.findall( var_pat, build )
+
 def exist_config():
     return os.path.exists( get_config() )
 
@@ -52,6 +58,12 @@ def exist_file_current_target( filename ):
         if line.strip() == filename:
             return True
     return False
+
+#
+# Tools
+#
+def extract_varname( variable_w_dollar ):
+    return variable_w_dollar[2:-1]
 
 #
 # Tasks
@@ -74,7 +86,8 @@ def load_and_set_cache( subheading, key, value ):
         
         # Load if the .cache exists
         cache.read( cache_file )
-    else:
+    
+    if ( not cache.has_section( subheading )):
         cache.add_section( subheading )
     cache.set( subheading, key, value )
     with open( cache_file, "w") as fp:
@@ -140,3 +153,16 @@ def op_remove(filename=""):
     tmp.seek(0)
     target = open( os.path.join( get_config(), target ), "w" )
     target.writelines( tmp.readlines() )
+
+def op_set( key="", value="" ):
+    
+    if ( key == "" ):
+        print "Error: A key and value to be set must be specified. `puptent set key value'"
+        return
+
+    if ( value == "" ):
+        print "Error: A key must have a value associated with it. `puptent set key value'"
+        return
+
+    load_and_set_cache( 'vars', key, value )
+
