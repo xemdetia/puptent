@@ -6,6 +6,7 @@
 
 import os
 import ConfigParser
+import tempfile
 
 cwd = os.getcwd() # We are using this a lot, it seems more sensible to
                   # cache it.
@@ -114,4 +115,28 @@ def op_add(filename=""):
     if ( not exist_file_current_target( filename )):        
         fp.write(filename + "\n")
 
+def op_remove(filename=""):
     
+    if ( filename == "" ):
+        print "Error: No files specified to remove. Use `puptent remove file1' to remove files."
+        return
+
+    if ( not exist_file_current_target( filename )):
+        
+        print "File " + filename + " was not in the current target to remove"
+        return
+
+    tmp = tempfile.TemporaryFile()
+    target = get_current_target()
+    
+    # Read all of the data in, skipping the file in question
+    for line in open( os.path.join( get_config(), target )):
+        if ( line.strip() == filename ):
+            continue
+        else:
+            tmp.write( line )
+    
+    #Now write it back
+    tmp.seek(0)
+    target = open( os.path.join( get_config(), target ), "w" )
+    target.writelines( tmp.readlines() )
