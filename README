@@ -1,0 +1,46 @@
+puptent - an interactive build tool.
+
+Written in Python, designed for anything that has to take a bunch of
+things in column A and turn them into a bunch of things for column B.
+
+- LICENSE -
+
+Licensed under Mozilla Public License:
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+- WHY -
+
+The reason I started this project is because I had another run in
+with a cross-platform build issue. I tried a lot of the options
+available but most of them seemed really awkward to work with or were
+attempted and we immediately ran into some insurmountable problem.
+
+As a producer of software I use many systems, and while the GNU
+Autotools is pretty great in Unix, it is pretty awful for
+Windows. Additionally the autotools stuff is thorough and great to
+work with but at the same time it does a lot of checks for things that
+are very important but really don't help me get to the point where
+things 'just work' fast enough. Right now I need tools so I can pull
+down some code with git and build it on a Windows machine and a Unix
+machine without any trouble.
+
+Then I remembered the one thing I can use on both platforms easily is
+git (even though there is a lot of work to get there), and how much
+the interface 'just works'. I think about all the tools I've had
+issues using or just writing makefiles to remember that really long
+incantation that I got to work that one time and things just seem to
+fall into two categories. They either use some sort of scanning
+category with some loose rules and hope for the best or an intricate
+and fragile house built by really awkward and tightly coded rules.
+
+Then I realized: there isn't really a build too that one can use that
+just does stuff /incrementally/, and when I was thinking incremental I
+started thinking git. I add files with git, I perform operations with
+git and I like git and for the most part git seems to like me.
+
+So I decided to try and build a system in Python (since Python is easy
+to install on everything), and this is what happened.
+

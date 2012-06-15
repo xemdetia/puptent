@@ -1,0 +1,51 @@
+
+* .config directory
+
+  When puptent is run in a directory it examines whether or not there
+  is a .config directory. If there is a .config directory then it is
+  examines for more information about the build targets.
+
+** .cache
+
+   .cache is a file that *should* be ignored through .gitignore and
+   the like. What this file is designed to do is to save the ongoing
+   configuration (a feature I really liked in cmake) for the local
+   system. Perhaps later I will allow a user-based or even global
+   mapping.
+
+   The .cache is important especially if you are trying to do an
+   isolated build or do a bootstrap build to get a system up and
+   running on a new compiler separate from your inital system. With
+   some build systems it can be tricky to manage these search paths,
+   or especially when you are trying to compare two libraries and that
+   sort of thing. I intend to support saving or doing some I/O
+   regarding a .cache file.
+* Command Line
+
+** puptent
+*** target
+
+    Form: puptent target [name]
+    
+    If name is omitted, list all of the build targets in the current
+    directory. If name is included and doesn't exist create a new
+    build target. If the name matches an existing build target, switch
+    to that target.
+*** add
+    
+    Form: puptent add [file] [file..]
+
+    The add command does what you expect it to, it adds a file to the
+    current project. If there is no current project return an error.
+*** remove
+
+    Form: puptent remove [file] [file..]
+
+    Removes files, returns errors when the files aren't there to be
+    removed.
+*** build
+
+    Form: build [target]
+
+    If target is omitted, build everything. 
+
