@@ -182,6 +182,9 @@
     operations. You do the first step and then the second step. Even
     if there is an :each operator and the jobs are spread around it is
     still okay.
+
+    I think the first thing I need to do is figure out how to do the
+    replacements.
 *** set
 
     Form: puptent set key value
@@ -213,7 +216,12 @@
 
     Based on the specifications within .package build a package based
     on the files built.
-
+*** install
+    
+    Form: puptent install
+    
+    Based on the specifications within .install build a package based
+    on the files built.
 ** puptent-config
 
    Form: puptent-config label
