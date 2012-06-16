@@ -38,8 +38,33 @@ def get_current_target():
 
 def get_variables_build_string( build ):
 
-    var_pat = re.compile('\$\([A-Za-z_]*\)')
+    var_pat = re.compile('\$\([A-Z_]*\)')
     return re.findall( var_pat, build )
+
+# Returns a dictionary of both environment variables that are set and
+# variables in the .cache file. By default, all variables in the
+# .cache files override those from other sources and should have
+# priority.
+def get_full_env():
+    
+    result = dict( os.environ ) # Import existing environment
+    
+    if ( not exist_cache() ):
+        print "Error: No .cache exists."
+        return None
+    
+    cache_file = ConfigParser.RawConfigParser()
+    cache_file.read( get_cache_file() )
+    
+    if ( cache_file.has_section( 'vars' )):
+        
+        # This overrides the stuff in result
+        uppercased = []
+        for i in cache_file.items( 'vars' ):
+            uppercased = [(i[0].upper(), i[1])] + uppercased
+        result.update( uppercased )
+
+    return result   
 
 def exist_config():
     return os.path.exists( get_config() )
@@ -92,6 +117,30 @@ def load_and_set_cache( subheading, key, value ):
     cache.set( subheading, key, value )
     with open( cache_file, "w") as fp:
         cache.write(fp)
+
+def replace_vars( build_str ):
+    
+    b = get_full_env()
+    varlist = get_variables_build_string( build_str )
+    keep_going = True
+
+    for i in varlist:
+        if extract_varname(i) not in b:
+            print "Error: " + extract_varname(i) + " was never assigned a value."
+            keep_going = False
+
+    if not keep_going:
+
+        # We want to list all the variables that aren't set
+        print "Next time use `puptent check build' to list all unset variables."
+        return False
+    
+    print varlist
+    for i in varlist:
+        print i
+        build_str = build_str.replace( i, b[ extract_varname(i) ] )
+
+    return build_str
 
 #
 # Operators
