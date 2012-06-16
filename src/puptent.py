@@ -8,6 +8,7 @@ import os
 import ConfigParser
 import tempfile
 import re
+import sys
 
 cwd = os.getcwd() # We are using this a lot, it seems more sensible to
                   # cache it.
@@ -150,6 +151,9 @@ def replace_vars( build_str ):
 def do_build( target ):
     print "thing"
 
+def help_string():
+    print "look at the docs"
+
 #
 # Operators
 #
@@ -242,3 +246,30 @@ def op_build( target="" ):
     # like I wanted to.
 
     do_build( target )
+
+#
+# map to operators
+#
+map_op = dict([( "target", op_target ),
+               ( "add"   , op_add    ),
+               ( "remove", op_remove ),
+               ( "set"   , op_set    ),
+               ( "build" , op_build  )])
+
+# arg handler
+def main( args ):
+    
+    if len( args ) < 2:
+        help_string()
+        return
+
+    if args[1] not in map_op:
+        print "The operation " + args[1] + " is not supported. Maybe `puptent help'?"
+        return
+
+    map_op[ args[1] ]( *args[2:] )
+
+# Run This Program
+if __name__ == "__main__":
+    main( sys.argv )
+
