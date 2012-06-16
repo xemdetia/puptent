@@ -84,6 +84,11 @@ def exist_file_current_target( filename ):
             return True
     return False
 
+def exist_build():
+    if ( exist_config() ):
+        return os.path.exists( os.path.join ( get_config(), '.build'))
+    return False
+
 #
 # Tools
 #
@@ -142,11 +147,15 @@ def replace_vars( build_str ):
 
     return build_str
 
+def do_build( target ):
+    print "thing"
+
 #
 # Operators
 #
 def op_target(name=""):
 
+    # TODO: Filter out the . files
     if ( name == "" ):
         if ( exist_config() ):
             for i in os.listdir( get_config() ):
@@ -215,3 +224,21 @@ def op_set( key="", value="" ):
 
     load_and_set_cache( 'vars', key, value )
 
+def op_build( target="" ):
+    
+    if ( target == "" ):
+        print "Error: You must specify a target to build. `puptent build target'"
+        return
+
+    if ( not exist_target( target )):
+        print "Error: The target " + target + " does not exist."
+        return
+        
+    if ( not exist_build() ):
+        print "Error: You must define a .build file in the .config directory!"
+        return
+
+    # TODO: expand this to do a build all if no target is specified
+    # like I wanted to.
+
+    do_build( target )
